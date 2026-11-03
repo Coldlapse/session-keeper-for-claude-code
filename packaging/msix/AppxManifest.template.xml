@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- build_msix.ps1이 {{...}} 토큰을 치환한다. 직접 편집 시 토큰 유지. -->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
+  xmlns:uap10="http://schemas.microsoft.com/appx/manifest/uap/windows10/10"
+  xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap uap3 uap10 desktop rescap">
+
+  <Identity Name="{{IdentityName}}" Publisher="{{Publisher}}" Version="{{Version}}" ProcessorArchitecture="x64" />
+
+  <Properties>
+    <DisplayName>{{DisplayName}}</DisplayName>
+    <PublisherDisplayName>{{PublisherDisplayName}}</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+
+  <Dependencies>
+    <!-- uap10:Parameters 때문에 Windows 10 2004(19041) 이상 -->
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="ko-KR" />
+    <Resource Language="en-US" />
+  </Resources>
+
+  <Applications>
+    <Application Id="App" Executable="ClaudeSessionKeeper\ClaudeSessionKeeper.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements
+        DisplayName="{{DisplayName}}"
+        Description="Claude Code 세션과 Claude Desktop 창을 스냅샷하고 재부팅 후 복원합니다 (비공식)."
+        BackgroundColor="transparent"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png">
+        <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" />
+      </uap:VisualElements>
+
+      <Extensions>
+        <!-- 로그인 시 자동 실행: 트레이로 시작 + 대기 중인 복원 처리. 사용자는 작업 관리자 > 시작 앱에서 끌 수 있다. -->
+        <desktop:Extension Category="windows.startupTask"
+                           Executable="ClaudeSessionKeeper\ClaudeSessionKeeper.exe"
+                           EntryPoint="Windows.FullTrustApplication"
+                           uap10:Parameters="--startup">
+          <desktop:StartupTask TaskId="CSKStartup" Enabled="true" DisplayName="{{DisplayName}}" />
+        </desktop:Extension>
+
+        <!-- Claude Code 훅이 호출할 고정 경로: %LOCALAPPDATA%\Microsoft\WindowsApps\csk-hook.exe
+             별칭으로 실행되어야 패키지 컨텍스트(같은 데이터 폴더)에서 돈다. -->
+        <uap3:Extension Category="windows.appExecutionAlias"
+                        Executable="ClaudeSessionKeeper\csk-hook.exe"
+                        EntryPoint="Windows.FullTrustApplication">
+          <uap3:AppExecutionAlias>
+            <desktop:ExecutionAlias Alias="csk-hook.exe" />
+          </uap3:AppExecutionAlias>
+        </uap3:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+</Package>

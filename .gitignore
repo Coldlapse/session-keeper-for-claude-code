@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+build/
+dist/
+*.spec.bak
+*.pfx
+*.msix
+.venv/
+venv/
+.idea/
+.vscode/
+
+# 로컬 전용
+_original/
+_workspace/
+*.cer
