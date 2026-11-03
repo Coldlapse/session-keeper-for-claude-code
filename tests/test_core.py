@@ -358,3 +358,51 @@ def test_config_unexpected_reboot_migration(fake_home, saved, expected):
     core._write_json(core.CONFIG_PATH, saved)
     cfg = core.load_config()
     assert cfg["unexpected_reboot"] == expected and "ask_after_unexpected_reboot" not in cfg
+
+
+class FakeClock:
+    """wait_for_windows용 가짜 시계. sleep이 시간을 앞으로 민다."""
+    def __init__(self):
+        self.t = 0.0
+
+    def now(self):
+        return self.t
+
+    def sleep(self, s):
+        self.t += s
+
+
+def _wait(schedule, target, **kw):
+    """schedule: [(시각, 창 수), ...] 시각 이후 그 수만큼 창이 보인다."""
+    clk = FakeClock()
+
+    def list_fn():
+        n = 0
+        for at, cnt in schedule:
+            if clk.t >= at:
+                n = cnt
+        return list(range(n))
+    got = core.wait_for_windows(list_fn, target, clock=clk.now, sleep=clk.sleep, **kw)
+    return len(got), clk.t
+
+
+def test_wait_windows_until_all_open():
+    # 재부팅 실기 재현: Desktop 첫 창 2초, 나머지가 하나씩 늦게 열림
+    n, t = _wait([(2, 1), (3.5, 2), (5, 3), (6.5, 4)], target=4)
+    assert n == 4 and t == pytest.approx(6.5)
+
+
+def test_wait_windows_settles_when_fewer_than_saved():
+    # 저장 4개인데 Desktop이 2개만 다시 열면 settle 뒤 2개로 진행
+    n, t = _wait([(1, 1), (2, 2)], target=4, settle=4.0)
+    assert n == 2 and t == pytest.approx(6.0)
+
+
+def test_wait_windows_times_out_with_none():
+    n, t = _wait([], target=2, timeout=30.0)
+    assert n == 0 and t == pytest.approx(30.0)
+
+
+def test_wait_windows_already_running_returns_immediately():
+    n, t = _wait([(0, 3)], target=1)
+    assert n == 3 and t == 0

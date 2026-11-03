@@ -553,11 +553,37 @@ def pair_windows(current: list[DesktopWindow], saved: list[dict]) -> list[tuple[
     return pairs
 
 
+def wait_for_windows(list_fn: Callable[[], list], target: int, timeout: float = 30.0,
+                     settle: float = 4.0, poll: float = 0.5,
+                     clock: Callable[[], float] = time.monotonic,
+                     sleep: Callable[[float], None] = time.sleep) -> list:
+    """Desktop을 새로 띄운 직후 창이 다 열릴 때까지 기다린다.
+    창 수가 target에 이르면 바로, 첫 창이 뜬 뒤 settle초 동안 수가 늘지 않으면 그때 끝낸다.
+    Desktop은 이전 창들을 하나씩 다시 열기 때문에 첫 창만 보고 배치하면 나머지를 놓친다."""
+    start = clock()
+    windows: list = []
+    best = 0
+    changed = start
+    while True:
+        windows = list_fn()
+        now = clock()
+        if len(windows) > best:
+            best, changed = len(windows), now
+        if best >= target:
+            return windows
+        if best and now - changed >= settle:
+            return windows
+        if now - start >= timeout:
+            return windows
+        sleep(poll)
+
+
 def restore_desktop(desk: dict, cfg: dict, log: Log = print) -> None:
     if not desk.get("running"):
         return
     procs = desktop_processes()
-    if not procs:
+    launched = not procs
+    if launched:
         target = _desktop_launch_target(desk, cfg)
         log(f"Claude Desktop 실행: {target}")
         try:
@@ -568,14 +594,13 @@ def restore_desktop(desk: dict, cfg: dict, log: Log = print) -> None:
     saved = desk.get("windows", [])
     if not saved:
         return
-    windows: list[DesktopWindow] = []
-    for _ in range(60):                       # 최대 30초 대기
-        windows = list_desktop_windows({p.pid for p in desktop_processes()})
-        if windows:
-            break
-        time.sleep(0.5)
+    def current() -> list[DesktopWindow]:
+        return list_desktop_windows({p.pid for p in desktop_processes()})
+
+    # 이미 실행 중이면 창도 이미 있으므로 첫 창만 확인. 새로 띄웠으면 창이 다 열릴 때까지 기다림
+    windows = wait_for_windows(current, len(saved) if launched else 1)
     time.sleep(1.0)                           # 첫 렌더 후 앱이 스스로 위치를 잡는 것을 기다림
-    windows = list_desktop_windows({p.pid for p in desktop_processes()}) or windows
+    windows = current() or windows
     for cur, w in pair_windows(windows, saved):
         try:
             win32gui.SetWindowPlacement(
