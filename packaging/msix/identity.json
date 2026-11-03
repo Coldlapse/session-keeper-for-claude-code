@@ -1,7 +1,7 @@
 {
-  "_comment": "Partner Center > 앱 > 제품 관리 > 제품 ID(Product identity) 값으로 교체. CHANGE-ME가 남아 있으면 build_msix.ps1은 로컬 테스트용 개발 ID로 빌드한다.",
-  "IdentityName": "CHANGE-ME.ClaudeSessionKeeper",
-  "Publisher": "CN=CHANGE-ME",
-  "PublisherDisplayName": "CHANGE-ME",
+  "_comment": "Values from Partner Center > Product management > Product identity. Store ID 9NSWT349PM00, PFN Coldlapse.SessionKeeperforClaudeCode_c0ewbeehy8pzc. build_msix.ps1 -Dev overrides these with a local test identity.",
+  "IdentityName": "Coldlapse.SessionKeeperforClaudeCode",
+  "Publisher": "CN=838FFAD1-9DC4-4DEB-8E19-B20E89F55519",
+  "PublisherDisplayName": "Coldlapse",
   "DisplayName": "Session Keeper for Claude Code"
 }
